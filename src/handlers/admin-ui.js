@@ -1383,13 +1383,6 @@ export async function handleAdminUI(request, env, sys) {
       }
     }
     
-    // 键盘快捷键
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeModal();
-      }
-    });
-    
     // 拖拽排序功能
     let draggedRow = null;
     let dragInfoEl = null;

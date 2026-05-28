@@ -721,9 +721,6 @@ export async function handleServerDetail(request, env, sys, viewId) {
       <div class="status-bar-item">
         <span>Auto-refresh: 60s (status)</span>
       </div>
-      <div class="status-bar-item">
-        <span>Shortcut: Ctrl+R to refresh</span>
-      </div>
     </div>
     
     ${getFooterHtml()}
@@ -1369,18 +1366,6 @@ export async function handleServerDetail(request, env, sys, viewId) {
         currentHours = parseFloat(this.dataset.hours);
         loadAllHistory(currentHours);
       });
-    });
-    
-    // =============================================
-    // 键盘快捷键
-    // =============================================
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'r' && e.ctrlKey) {
-        e.preventDefault();
-        loadAllHistory(currentHours);
-        fetchCurrentStatus();
-        console.log('[INFO] Manual refresh triggered');
-      }
     });
     
     // =============================================
