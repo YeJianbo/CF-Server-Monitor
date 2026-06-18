@@ -1,5 +1,5 @@
 const APPEARANCE_FIELDS = ['site_title', 'custom_bg', 'custom_head', 'custom_script'];
-const SITE_FIELDS = ['is_public', 'show_price', 'show_expire', 'show_bw', 'show_tf', 'tg_notify', 'tg_bot_token', 'tg_chat_id', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'jwt_secret', 'username', 'password', 'custom_ct', 'custom_cu', 'custom_cm', 'custom_bd'];
+const SITE_FIELDS = ['is_public', 'show_price', 'show_expire', 'show_bw', 'show_tf', 'tg_notify', 'tg_bot_token', 'tg_chat_id', 'turnstile_enabled', 'turnstile_site_key', 'turnstile_secret_key', 'jwt_secret', 'username', 'password', 'custom_ct', 'custom_cu', 'custom_cm', 'custom_bd', 'default_report_interval', 'default_ping_enabled', 'default_ping_mode'];
 
 const defaults = {
   site_title: 'Cloudflare Server Monitor',
@@ -20,7 +20,10 @@ const defaults = {
   custom_ct: 'gd-ct-dualstack.ip.zstaticcdn.com',
   custom_cu: 'gd-cu-dualstack.ip.zstaticcdn.com',
   custom_cm: 'gd-cm-dualstack.ip.zstaticcdn.com',
-  custom_bd: 'lf3-ips.zstaticcdn.com'
+  custom_bd: 'lf3-ips.zstaticcdn.com',
+  default_report_interval: '180',
+  default_ping_enabled: 'false',
+  default_ping_mode: 'http'
 };
 
 function tryParseJSON(str) {
