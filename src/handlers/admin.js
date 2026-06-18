@@ -53,6 +53,12 @@ function getDefaultPingMode(sys) {
     : 'off';
 }
 
+function getOnlineThresholdMs(server) {
+  const interval = parseInt(server?.report_interval || 60, 10);
+  const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 60;
+  return Math.max(300000, safeInterval * 2500);
+}
+
 export async function handleAdminAPI(request, env, sys) {
   try {
     const data = await request.json();
@@ -94,7 +100,6 @@ export async function handleAdminAPI(request, env, sys) {
       const servers = await getAllServers(env.DB);
       const latestMetricsMap = await getLatestMetricsForAllServers(env.DB);
       const now = Date.now();
-      const ONLINE_THRESHOLD = 300000;
       const stats = { total: servers.length, online: 0, offline: 0, total_cpu: 0, total_ram: 0, total_disk: 0, total_net_in: 0, total_net_out: 0, avg_cpu: 0, avg_ram: 0, avg_disk: 0 };
 
       const serversWithStatus = servers.map(server => {
@@ -102,7 +107,7 @@ export async function handleAdminAPI(request, env, sys) {
         const item = { ...server };
         let isOnline = false;
         if (latestMetrics) {
-          isOnline = (now - latestMetrics.timestamp) < ONLINE_THRESHOLD;
+          isOnline = (now - latestMetrics.timestamp) < getOnlineThresholdMs(server);
           mergeMetricsIntoServer(item, latestMetrics);
         } else {
           Object.assign(item, { last_updated: 0, is_online: false, cpu_cores: 0, cpu_info: '', arch: '', os: '', ip_v4: '0', ip_v6: '0', boot_time: '' });
