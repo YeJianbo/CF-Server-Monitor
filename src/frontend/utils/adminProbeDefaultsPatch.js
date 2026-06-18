@@ -111,9 +111,13 @@ const normalizePingValue = (value) => {
   return ['off', 'http', 'tcp'].includes(v) ? v : 'off'
 }
 
+const normalizeInstallCommand = (cmd) => {
+  return String(cmd || '').replace(/\/install(?:-alpine|-openwrt)?\.sh\s*\|\s*(?:bash|sh)\s+-s/g, '/install-auto.sh | sh -s')
+}
+
 const setCommandPing = (cmd, ping) => {
   const next = normalizePingValue(ping)
-  const text = String(cmd || '')
+  const text = normalizeInstallCommand(cmd)
   if (/\s-ping=[^\s]+/.test(text)) return text.replace(/\s-ping=[^\s]+/g, ` -ping=${next}`)
   return `${text} -ping=${next}`
 }
