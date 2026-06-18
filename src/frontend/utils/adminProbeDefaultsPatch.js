@@ -62,6 +62,7 @@ const findSettingsGrid = () => {
 }
 
 const injectProbeDefaults = () => {
+  document.querySelectorAll('#copyModal [data-ping-switch-patch]').forEach(el => el.remove())
   if (!isAdminPage() || document.getElementById('probe-defaults-section')) return
   const container = findSettingsGrid()
   if (!container) return
@@ -71,27 +72,29 @@ const injectProbeDefaults = () => {
   section.id = 'probe-defaults-section'
   section.innerHTML = `
     <div class="section-title"><span>▸</span> ${t('探针默认设置', 'Probe Defaults')}</div>
-    <div class="form-group">
-      <label class="form-label">${t('默认上报间隔', 'Default Report Interval')}</label>
-      <select id="probe_default_interval" class="form-select">
-        <option value="60">60s</option>
-        <option value="180">180s</option>
-        <option value="300">300s</option>
-        <option value="600">600s</option>
-      </select>
-      <p class="text-muted text-sm mt-2">${t('建议 20 台机器使用 180 秒，避免 Workers 请求数和 D1 写入压力过高。', 'For about 20 servers, 180s is recommended to reduce Worker requests and D1 writes.')}</p>
-    </div>
-    <div class="checkbox-item">
-      <input type="checkbox" id="probe_default_ping_enabled">
-      <label><b>${t('默认启用 Ping 测速', 'Enable Ping probing by default')}</b></label>
-    </div>
-    <div class="form-group">
-      <label class="form-label">${t('默认 Ping 模式', 'Default Ping Mode')}</label>
-      <select id="probe_default_ping_mode" class="form-select">
-        <option value="http">HTTP</option>
-        <option value="tcp">TCP</option>
-      </select>
-      <p class="text-muted text-sm mt-2">${t('默认关闭更省请求和系统资源。需要延迟监控时再打开。', 'Keep it off by default to save requests and system resources. Enable only when latency monitoring is needed.')}</p>
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label class="form-label">${t('默认上报间隔', 'Default Report Interval')}</label>
+        <select id="probe_default_interval" class="form-select">
+          <option value="60">60s</option>
+          <option value="180">180s</option>
+          <option value="300">300s</option>
+          <option value="600">600s</option>
+        </select>
+      </div>
+      <div class="form-group flex-1">
+        <label class="form-label">${t('默认 Ping 模式', 'Default Ping Mode')}</label>
+        <div class="flex items-center gap-2" style="gap:10px; align-items:center;">
+          <label class="checkbox-item no-margin" style="display:flex; align-items:center; gap:6px; margin:0; white-space:nowrap;">
+            <input type="checkbox" id="probe_default_ping_enabled">
+            <span>${t('开启', 'On')}</span>
+          </label>
+          <select id="probe_default_ping_mode" class="form-select" style="min-width:110px;">
+            <option value="http">HTTP</option>
+            <option value="tcp">TCP</option>
+          </select>
+        </div>
+      </div>
     </div>
   `
 
