@@ -1,6 +1,6 @@
 #!/bin/sh
 # CF-Server-Monitor unified Linux installer.
-# Auto-detect Alpine/OpenRC vs common systemd Linux and delegate to the proper script.
+# Auto-detect OpenWrt/ImmortalWrt, Alpine/OpenRC, and common systemd Linux.
 # Ping probing is opt-in: when -ping is omitted, the unified entry adds -ping=off.
 set -eu
 
@@ -36,17 +36,30 @@ if [ "$has_ping" = "0" ]; then
   set -- "$@" -ping=off
 fi
 
-is_alpine=0
-if [ -f /etc/alpine-release ]; then
-  is_alpine=1
-elif [ -f /etc/os-release ] && grep -qi '^ID=alpine' /etc/os-release 2>/dev/null; then
-  is_alpine=1
+os_id="unknown"
+if [ -f /etc/os-release ]; then
+  os_id=$(grep -E '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"' | tr -d "'" | tr '[:upper:]' '[:lower:]' 2>/dev/null || echo unknown)
+elif [ -f /etc/openwrt_release ]; then
+  os_id="openwrt"
+elif [ -f /etc/alpine-release ]; then
+  os_id="alpine"
 fi
 
-if [ "$is_alpine" = "1" ]; then
-  echo "[i] 检测到 Alpine Linux，自动切换到 install-alpine.sh"
-  exec sh -c "curl -sL '$BASE_URL/install-alpine.sh' | sh -s \"\$@\"" sh "$@"
-fi
-
-echo "[i] 检测到通用 Linux，自动切换到 install.sh"
-exec sh -c "curl -sL '$BASE_URL/install.sh' | bash -s \"\$@\"" sh "$@"
+case "$os_id" in
+  openwrt|lede|immortalwrt)
+    echo "[i] 检测到 OpenWrt/LEDE/ImmortalWrt，自动切换到 install-openwrt.sh"
+    exec sh -c "curl -sL '$BASE_URL/install-openwrt.sh' | sh -s \"\$@\"" sh "$@"
+    ;;
+  alpine)
+    echo "[i] 检测到 Alpine Linux，自动切换到 install-alpine.sh"
+    exec sh -c "curl -sL '$BASE_URL/install-alpine.sh' | sh -s \"\$@\"" sh "$@"
+    ;;
+  *)
+    if [ -f /etc/alpine-release ] || { command -v apk >/dev/null 2>&1 && command -v rc-service >/dev/null 2>&1; }; then
+      echo "[i] 检测到 apk/OpenRC 环境，自动切换到 install-alpine.sh"
+      exec sh -c "curl -sL '$BASE_URL/install-alpine.sh' | sh -s \"\$@\"" sh "$@"
+    fi
+    echo "[i] 检测到通用 Linux，自动切换到 install.sh"
+    exec sh -c "curl -sL '$BASE_URL/install.sh' | bash -s \"\$@\"" sh "$@"
+    ;;
+esac
