@@ -17,6 +17,54 @@ import { MetricsBroadcaster as _MetricsBroadcaster }
 
 export class MetricsBroadcaster extends _MetricsBroadcaster {}
 
+function normalizeReportInterval(value) {
+  const n = parseInt(value, 10);
+  if ([30, 60, 120, 180, 300, 600].includes(n)) return n;
+  return 180;
+}
+
+function normalizePingMode(value) {
+  const v = String(value || '').toLowerCase();
+  if (['off', 'http', 'tcp'].includes(v)) return v;
+  return 'off';
+}
+
+async function handleAgentConfigAPI(request, env, sys) {
+  const url = new URL(request.url);
+  const id = url.searchParams.get('id') || '';
+  const secret = url.searchParams.get('secret') || '';
+
+  if (!id || !secret) return createBadRequestResponse('Missing id or secret');
+  if (secret !== env.API_SECRET) return createUnauthorizedResponse('Invalid secret');
+
+  const server = await env.DB.prepare(`
+    SELECT id, report_interval, ping_mode, reset_day
+    FROM servers
+    WHERE id = ?
+  `).bind(id).first();
+
+  if (!server) {
+    return new Response(JSON.stringify({ error: 'Server not found', code: 404 }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const inheritedPingMode = sys?.default_ping_enabled === 'true' ? sys?.default_ping_mode : 'off';
+
+  return createSuccessResponse({
+    report_interval: normalizeReportInterval(server.report_interval || sys?.default_report_interval),
+    ping_mode: normalizePingMode(server.ping_mode || inheritedPingMode),
+    reset_day: parseInt(server.reset_day || 1, 10) || 1,
+    custom_ct: sys?.custom_ct || '',
+    custom_cu: sys?.custom_cu || '',
+    custom_cm: sys?.custom_cm || '',
+    custom_bd: sys?.custom_bd || '',
+    config_ttl: 300
+  }, {
+    'Cache-Control': 'no-store'
+  });
+}
 
 async function getEncryptionKey(env) {
   const secret = env.TURNSTILE_SECRET_KEY || env.API_SECRET || 'default_secret_key_for_turnstile_encryption';
@@ -148,13 +196,17 @@ export default {
       '/update',
       '/admin/api',
       '/api/config',
+      '/api/agent-config',
       '/favicon.ico',
       '/logo.svg',
-      '/install.sh'
+      '/install.sh',
+      '/install-auto.sh',
+      '/install-alpine.sh',
+      '/install-openwrt.sh'
     ];
 
     const isApiRequest = path.startsWith('/api/') || path.startsWith('/admin/api');
-    if (path === '/api/config' || path === '/rebuild') {
+    if (path === '/api/config' || path === '/api/agent-config' || path === '/rebuild') {
       await initDatabase(env.DB);
     }
 
@@ -211,6 +263,10 @@ export default {
 
     const routes = [
       { method: 'POST', path: '/update', handler: () => handleUpdate(request, env, ctx) },
+      { method: 'GET', path: '/api/agent-config', handler: async () => {
+        await ensureSiteSettings();
+        return handleAgentConfigAPI(request, env, sys);
+      }},
       { method: 'GET', path: '/__do/health', handler: async () => {
         if (!env.METRICS_BROADCASTER) {
           return createSuccessResponse({ ok: false, reason: 'DO not bound' });
