@@ -106,6 +106,106 @@ const injectProbeDefaults = () => {
   loadProbeDefaults()
 }
 
+const normalizePingValue = (value) => {
+  const v = String(value || '').toLowerCase()
+  return ['off', 'http', 'tcp'].includes(v) ? v : 'off'
+}
+
+const setCommandPing = (cmd, ping) => {
+  const next = normalizePingValue(ping)
+  const text = String(cmd || '')
+  if (/\s-ping=[^\s]+/.test(text)) return text.replace(/\s-ping=[^\s]+/g, ` -ping=${next}`)
+  return `${text} -ping=${next}`
+}
+
+const findFormGroupByLabel = (root, pattern) => {
+  return Array.from(root.querySelectorAll('.form-group')).find(group => {
+    const label = group.querySelector('.form-label')?.textContent || ''
+    return pattern.test(label)
+  })
+}
+
+const ensureCopyModalPingOff = () => {
+  const modal = document.getElementById('copyModal')
+  if (!modal || !modal.classList.contains('active')) return
+
+  const pingGroup = findFormGroupByLabel(modal, /ping|测速|延迟/i)
+  const commandInput = modal.querySelector('.cmd-input-wrapper input.cmd-input')
+  if (!pingGroup || !commandInput) return
+
+  let select = pingGroup.querySelector('select[data-copy-ping-mode]')
+  if (!select) {
+    const current = normalizePingValue(
+      commandInput.value.match(/\s-ping=([^\s]+)/)?.[1] ||
+      pingGroup.querySelector('input')?.value ||
+      'off'
+    )
+    const holder = pingGroup.querySelector('.flex') || pingGroup
+    holder.innerHTML = `
+      <select class="form-select" data-copy-ping-mode style="width:125px; min-width:125px;">
+        <option value="off">OFF</option>
+        <option value="http">HTTP</option>
+        <option value="tcp">TCP</option>
+      </select>
+    `
+    select = pingGroup.querySelector('select[data-copy-ping-mode]')
+    select.value = current
+    select.addEventListener('change', () => {
+      commandInput.value = setCommandPing(commandInput.value, select.value)
+    })
+  }
+
+  commandInput.value = setCommandPing(commandInput.value, select.value || 'off')
+}
+
+const ensureEditModalPingOff = () => {
+  const modal = document.getElementById('editModal')
+  if (!modal || !modal.classList.contains('active')) return
+  const pingGroup = findFormGroupByLabel(modal, /ping|测速|延迟/i)
+  const select = pingGroup?.querySelector('select')
+  if (!select || select.querySelector('option[value="off"]')) return
+  const option = document.createElement('option')
+  option.value = 'off'
+  option.textContent = 'OFF'
+  select.insertBefore(option, select.firstChild)
+}
+
+const syncPingOffControls = () => {
+  ensureCopyModalPingOff()
+  ensureEditModalPingOff()
+}
+
+const patchCopyButtonForPingOff = () => {
+  if (window.__copyPingOffPatched) return
+  window.__copyPingOffPatched = true
+  document.addEventListener('click', async event => {
+    const button = event.target.closest?.('#copyModal .modal-footer .btn-primary')
+    if (!button) return
+    const modal = document.getElementById('copyModal')
+    const commandInput = modal?.querySelector('.cmd-input-wrapper input.cmd-input')
+    const select = modal?.querySelector('select[data-copy-ping-mode]')
+    if (!commandInput || !select) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation()
+
+    const cmd = setCommandPing(commandInput.value, select.value)
+    commandInput.value = cmd
+    try {
+      await navigator.clipboard.writeText(cmd)
+    } catch (_) {
+      commandInput.focus()
+      commandInput.select()
+      document.execCommand('copy')
+    }
+
+    const old = button.textContent
+    button.textContent = `✅ ${t('已复制', 'Copied!')}`
+    setTimeout(() => { button.textContent = old }, 1500)
+  }, true)
+}
+
 const patchFetchForProbeDefaults = () => {
   if (window.__probeDefaultsFetchPatched) return
   window.__probeDefaultsFetchPatched = true
@@ -130,9 +230,16 @@ const patchFetchForProbeDefaults = () => {
 
 if (isAdminPage()) {
   patchFetchForProbeDefaults()
-  const observer = new MutationObserver(() => injectProbeDefaults())
+  patchCopyButtonForPingOff()
+  const observer = new MutationObserver(() => {
+    injectProbeDefaults()
+    syncPingOffControls()
+  })
   observer.observe(document.documentElement, { childList: true, subtree: true })
-  document.addEventListener('DOMContentLoaded', injectProbeDefaults)
-  setTimeout(injectProbeDefaults, 300)
-  setTimeout(injectProbeDefaults, 1000)
+  document.addEventListener('DOMContentLoaded', () => {
+    injectProbeDefaults()
+    syncPingOffControls()
+  })
+  setTimeout(() => { injectProbeDefaults(); syncPingOffControls() }, 300)
+  setTimeout(() => { injectProbeDefaults(); syncPingOffControls() }, 1000)
 }
