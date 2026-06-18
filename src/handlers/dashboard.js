@@ -4,6 +4,12 @@ import { getServerDetail } from '../utils/cache.js';
 import { mergeMetricsIntoServer } from '../utils/metrics.js';
 import { createSuccessResponse, createBadRequestResponse, createNotFoundResponse } from '../utils/errors.js';
 
+function getOnlineThresholdMs(server) {
+  const interval = parseInt(server?.report_interval || 60, 10);
+  const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 60;
+  return Math.max(300000, safeInterval * 2500);
+}
+
 export async function handleServerAPI(request, env, sys) {
   const isLoggedIn = await checkAuth(request, env, sys);
   
@@ -47,7 +53,7 @@ export async function handleServersAPI(request, env, sys) {
     let isOnline = false;
     
     if (latestMetrics) {
-      isOnline = (now - latestMetrics.timestamp) < 300000;
+      isOnline = (now - latestMetrics.timestamp) < getOnlineThresholdMs(server);
       mergeMetricsIntoServer(server, latestMetrics);
     }
     
@@ -60,8 +66,7 @@ export async function handleServersAPI(request, env, sys) {
     globalNetRx += parseFloat(server.net_rx || 0);
     globalNetTx += parseFloat(server.net_tx || 0);
     
-    let cCode = (server.country || '').toUpperCase();
-    if (cCode === 'TW') cCode = 'CN';
+    const cCode = (server.country || '').toUpperCase();
     if (cCode !== '') {
       countryStats[cCode] = (countryStats[cCode] || 0) + 1;
     }
@@ -93,4 +98,3 @@ export async function handleServersAPI(request, env, sys) {
 
   return createSuccessResponse(data);
 }
-
