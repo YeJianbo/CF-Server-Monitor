@@ -6,6 +6,44 @@
   <title>Server Monitor</title>
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+    #copyModal [data-ping-switch-patch] {
+      flex: 0 0 100%;
+      width: 100%;
+      margin: 8px 0 4px;
+      padding: 12px 14px;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+    }
+    #copyModal [data-ping-switch-patch] .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+    #copyModal [data-ping-switch-patch] .checkbox-item label {
+      display: inline;
+      line-height: 1.4;
+    }
+    #copyModal [data-ping-switch-patch] .form-row {
+      margin-top: 10px;
+      display: flex;
+      align-items: end;
+      gap: 12px;
+    }
+    #copyModal [data-ping-switch-patch] .form-group {
+      margin-bottom: 0;
+    }
+    #copyModal [data-ping-switch-patch] .form-label {
+      margin-bottom: 6px;
+    }
+    @media (max-width: 640px) {
+      #copyModal [data-ping-switch-patch] .form-row {
+        display: block;
+      }
+    }
+  </style>
 </head>
 <body>
   <div id="loading">
